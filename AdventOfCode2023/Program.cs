@@ -1,75 +1,81 @@
-﻿void Day12_Part1and2()
+﻿void Day13_Part1()
 {
     var input =
-    @"???.### 1,1,3
-.??..??...?##. 1,1,3
-?#?#?#?#?#?#?#? 1,3,1,6
-????.#...#... 4,1,1
-????.######..#####. 1,6,5
-?###???????? 3,2,1";
+        @"#.##..##.
+..#.##.#.
+##......#
+##......#
+..#.##.#.
+..##..##.
+#.#.##.#.
+
+#...##..#
+#....#..#
+..##..###
+#####.##.
+#####.##.
+..##..###
+#....#..#";
 
     var lines = input.Split(Environment.NewLine).ToArray();
-    lines = File.ReadAllLines("Day12_part1.txt").ToArray();
-    
-    var cache = new Dictionary<(int, int), long>();
-    long CountCached(char[] line, int[] grps, int pos)
+    lines = File.ReadAllLines("Day13_part1.txt").ToArray();
+    var maps = new List<List<string>> { new() };
+    foreach (var line in lines)
     {
-        if (!cache.ContainsKey((grps.Length, pos)))
-        {
-            cache[(grps.Length, pos)] = Count(line, grps, pos);
-        }
-
-        return cache[(grps.Length, pos)];
-    }
-    
-    long Count(char[] line, int[] grps, int pos)
-    {
-        // bad case # to left
-        if (0 < pos && pos < line.Length && line[pos - 1] == '#')
-            return 0;
-
-        // good everything done
-        if (grps.Length == 0 && (pos >= line.Length || !line[pos..].Any(x => x is '#')))
-        {
-            return 1;
-        }
-
-        // bad case line should be empty
-        if (grps.Length == 0 && line[pos..].Any(x => x is '#'))
-            return 0;
-
-        // bad case at end no place to set grps
-        if (grps.Length > 0 && pos + grps[0] > line.Length)
-            return 0;
-       
-        // continiue building
-        long subtotal = 0;
-        var subString = line[pos..(pos + grps[0])];
-        if (subString.All(x => x is '?' or '#') && (line.Length <= pos + grps[0] || line[pos + grps[0]] is '?' or '.'))
-        {
-            subtotal += CountCached(line, grps.Skip(1).ToArray(), pos + grps[0] + 1);
-        }
-
-        // evaluate if this grp could move one right
-        subtotal += CountCached(line, grps, pos + 1);
-        return subtotal;
+        if (String.IsNullOrWhiteSpace(line))
+            maps.Add(new());
+        else
+            maps.Last().Add(line);
     }
 
-    var total_part1 = 0;
-    long total_part2 = 0;
-    foreach (var row in lines)
+    List<int> GetRowMir(string row)
     {
-        var line = row.Split(" ")[0].ToArray();
-        var grps = row.Split(" ")[1].Split(",").Select(int.Parse).ToArray();
-        cache = new Dictionary<(int, int), long>();
-        var line5 = String.Join("?", Enumerable.Repeat(row.Split(" ")[0], 5)).ToArray();
-        var grps5 = Enumerable.Repeat(grps, 5).SelectMany(x => x).ToArray();
-        var subtotal_part2 = Count(line5, grps5, 0);
-        Console.WriteLine($"Subtotal {subtotal_part2}");
-        total_part2 += subtotal_part2;
+        List<int> row_mir = new List<int>();
+        for (int i = 1; i < row.Length; i++)
+        {
+            bool isMirror = true;
+            var l = i - 1;
+            var r = i;
+            while (0 <= l && r < row.Length)
+            {
+                if (row[l--] != row[r++])
+                {
+                    isMirror = false;
+                    break;
+                }
+            }
+            if (isMirror)
+                row_mir.Add(i);
+        }
+        return row_mir;
     }
 
-    Console.WriteLine($"part 2 {total_part2}");
+    List<string> Transpose(List<string> matrix)
+    {
+        var t = new List<string>();
+        for (int i = 0; i < matrix.First().Length; i++)
+        {
+            t.Add(string.Concat(matrix.Select(x => x[i])));
+        }
+        return t;
+    }
+
+    var part1Total = 0;
+    var part2Total = 0;
+    foreach (var map in maps)
+    {
+        var colPos = map.Select(x => GetRowMir(x)).SelectMany(x => x).GroupBy(x => x).Select(x => x).Where(x => x.Count() == map.Count).Select(x => x.Key).ToList();
+        var rowPos = Transpose(map).Select(x => GetRowMir(x)).SelectMany(x => x).GroupBy(x => x).Select(x => x).Where(x => x.Count() == map.First().Length).Select(x => x.Key).ToList();
+        int subTotal = colPos.Sum() + 100 * rowPos.Sum();
+        part1Total += subTotal;
+        
+        var newColPos = map.Select(x => GetRowMir(x)).SelectMany(x => x).GroupBy(x => x).Select(x => x).Where(x => x.Count() == map.Count-1).Select(x => x.Key).ToList();
+        var newRowPos = Transpose(map).Select(x => GetRowMir(x)).SelectMany(x => x).GroupBy(x => x).Select(x => x).Where(x => x.Count() == map.First().Length -1 ).Select(x => x.Key).ToList();
+        var newSubTotal = newColPos.Sum() + 100 * newRowPos.Sum();
+        part2Total += newSubTotal;
+    }
+
+    Console.WriteLine($"Total {part1Total}, new Total {part2Total}");
 }
 
-Day12_Part1and2();
+Day13_Part1();
